@@ -1,6 +1,7 @@
 // Implements basic nuclear data functions.
 #ifndef PYNE_IS_AMALGAMATED
 #include "data.h"
+#include "atomic_data.h"
 #endif
 
 //
@@ -13,7 +14,7 @@ const double pyne::barns_per_cm2 = 1e24;
 const double pyne::cm2_per_barn = 1e-24;
 const double pyne::sec_per_day = 24.0 * 3600.0;
 const double pyne::MeV_per_K = 8.617343e-11;
-const double pyne::MeV_per_MJ = 1.60217657e-19;
+const double pyne::MeV_per_MJ = 6.2415096471204E+18;
 const double pyne::Bq_per_Ci = 3.7e10;
 const double pyne::Ci_per_Bq = 2.7027027e-11;
 
@@ -47,8 +48,10 @@ void pyne::_load_atomic_mass_map() {
   // Loads the important parts of atomic_wight table into atomic_mass_map
 
   //Check to see if the file is in HDF5 format.
-  if (!pyne::file_exists(pyne::NUC_DATA_PATH))
-    throw pyne::FileNotFound(pyne::NUC_DATA_PATH);
+  if (!pyne::file_exists(pyne::NUC_DATA_PATH)) {
+    pyne::_load_atomic_mass_map_memory();
+    return;
+  }
 
   bool ish5 = H5Fis_hdf5(pyne::NUC_DATA_PATH.c_str());
   if (!ish5)
@@ -1441,17 +1444,17 @@ int pyne::id_from_level(int nuc, double level, std::string special) {
   int ret_id = nuc;
   for (std::map<std::pair<int, double>, level_data>::iterator it=nuc_lower;
        it!=nuc_upper; ++it) {
-    if ((abs(level - it->second.level) < minv) &&
+    if ((std::abs(level - it->second.level) < minv) &&
     ((char)it->second.special == special.c_str()[0]) &&
     !isnan(it->second.level)) {
-      minv = abs(level - it->second.level);
+      minv = std::abs(level - it->second.level);
       ret_id = it->second.nuc_id;
     }
   }
   // This value was chosen so important transitions in U-235 are not missed
   if (minv > 3.0)
     return -nuc;
-  else 
+  else
     return ret_id;
 }
 
@@ -1473,14 +1476,14 @@ int pyne::metastable_id(int nuc, int m) {
 
   nuc_lower = level_data_lvl_map.lower_bound(std::make_pair(nostate, 0.0));
   nuc_upper = level_data_lvl_map.upper_bound(std::make_pair(nostate+9999,
-  DBL_MAX));
+                                                            DBL_MAX));
   for (std::map<std::pair<int, double>, level_data>::iterator it=nuc_lower;
   it!=nuc_upper; ++it) {
     if (it->second.metastable == m)
         return it->second.nuc_id;
   }
 
-  return nuc;
+  return -1;
 }
 
 int pyne::metastable_id(int nuc) {
@@ -1504,12 +1507,15 @@ std::set<int> pyne::decay_children(int nuc) {
   for (; it != part.end(); ++it) {
     switch (*it) {
       case 36125: {
-        // internal conversion, rx == 'it'
+        // internal transition, rx == 'it'
         result.insert((nuc /10000) * 10000);
         break;
       }
-      case 36565: {
-        // spontaneous fission, rx == 'sf'
+      case 36565:
+      case 1794828612:
+      {
+        // spontaneous fission, rx == 'sf', 36565
+        // beta- & spontaneous fission, rx == 'b-sf', 1794828612
         std::map<std::pair<int, int>, double>::iterator sf = wimsdfpy_data.begin();
         for (; sf != wimsdfpy_data.end(); ++sf)
           if (sf->first.first == nuc)
@@ -1633,11 +1639,12 @@ double pyne::branch_ratio(std::pair<int, int> from_to) {
     if ((part1[i] == 36125) &&
         (groundstate(from_to.first) == groundstate(from_to.second)) &&
         (from_to.second % 10000 == 0)) {
-      // internal conversion, rx == 'it'
-      result = 1.0;
+      // internal transition, rx == 'it', 36125
+      result = part2[i] * 0.01;
       break;
-    } else if (part1[i] == 36565) {
-      // spontaneous fission, rx == 'sf'
+    } else if (part1[i] == 36565 || part1[i] == 1794828612) {
+      // spontaneous fission, rx == 'sf', 36565
+      // beta- & spontaneous fission, rx == 'b-sf', 1794828612
       result += part2[i] * 0.01 * wimsdfpy_data[from_to];
     } else if ((part1[i] != 0) && (groundstate(rxname::child(from_to.first,
                                    part1[i], "decay")) == from_to.second)) {
