@@ -2,7 +2,6 @@
 #ifndef PYNE_IS_AMALGAMATED
 extern "C" double endftod_(char *str, int len);
 #endif
-#include <iomanip>
 
 #ifndef PYNE_IS_AMALGAMATED
 #include "utils.h"
@@ -13,7 +12,6 @@ extern "C" double endftod_(char *str, int len);
 
 std::string pyne::PYNE_DATA = "";
 std::string pyne::NUC_DATA_PATH = "";
-std::string pyne::VERSION = "0.5.11";
 
 void pyne::pyne_start() {
 #if defined __WIN_MSVC__
@@ -164,25 +162,6 @@ std::string pyne::to_lower(std::string s) {
   return s;
 }
 
-std::ostringstream pyne::comment_line_wrapping(std::string line,
-                                               std::string comment_prefix,
-                                               int line_length) {
-  std::ostringstream oss;
-
-  line_length -= comment_prefix.length();
-    
-  // Include as is if short enough
-  while (line.length() > line_length) {
-    oss << comment_prefix << line.substr(0, line_length) << std::endl;
-    line.erase(0, line_length);
-  }
-
-  if (line.length() > 0) {
-    oss << comment_prefix << line << std::endl;
-  }
-
-  return oss;
-}
 
 std::string pyne::capitalize(std::string s) {
   unsigned int slen = s.length();
@@ -302,43 +281,6 @@ std::string pyne::natural_naming(std::string name) {
 }
 
 
-std::vector<std::string> pyne::split_string(std::string particles_list, std::string delimiter) {
-  std::vector<std::string> output_vector;
-  size_t prev_pos = 0; //item start position
-  size_t pos = 0; //item end position
- 
-  while( (pos = particles_list.find(delimiter, prev_pos)) != std::string::npos){
-    output_vector.push_back(particles_list.substr(prev_pos, pos));
-    prev_pos = pos + delimiter.length();
-  }
-  // catch list with a single particle
-  if (pos == std::string::npos && prev_pos == 0 && particles_list.length() >0)
-    output_vector.push_back(particles_list);
-
-  return output_vector;
-}
-
-
-
-template<typename T>
-std::string pyne::join_to_string(std::vector<T> vect, std::string delimiter){
-  std::stringstream out;
-  out << std::setiosflags(std::ios::fixed) << std::setprecision(6);
-  
-  // ensure there is at least 1 element in the vector
-  if (vect.size() == 0)
-    return out.str();
-  // no delimiter needed before the first element
-  out << vect[0];
-  for( int i = 1; i < vect.size(); i++)
-    out << delimiter << vect[i];
-  return out.str();
-}
-template std::string pyne::join_to_string(std::vector<int> vect, std::string delimiter);
-template std::string pyne::join_to_string(std::vector<double> vect,
-                                 std::string delimiter);
-template std::string pyne::join_to_string(std::vector<std::string> vect, std::string delimiter);
-
 //
 // Math Helpers
 //
@@ -395,7 +337,7 @@ bool pyne::file_exists(std::string strfilename) {
 }
 
 // Message Helpers
-
+ 
 bool pyne::USE_WARNINGS = true;
 
 bool pyne::toggle_warnings(){
@@ -406,8 +348,8 @@ bool pyne::toggle_warnings(){
 void pyne::warning(std::string s){
   // Prints a warning message
   if (USE_WARNINGS){
-    std::cout << "\033[1;33m WARNING: \033[0m" << s << "\n";
-  }
+    std::cout << "\033[1;33m WARNING: \033[0m" << s << "\n"; 
+  }  
 }
 
 

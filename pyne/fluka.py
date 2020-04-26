@@ -8,7 +8,7 @@ http://www.fluka.org/fluka.php
 
 Currently, only usrbin output files can be read.
 
-If PyMOAB is not installed, then Usrbin and UsrbinTally will not be
+If PyTAPS is not installed, then Usrbin and UsrbinTally will not be
 available to use.
 
 """
@@ -17,14 +17,16 @@ from warnings import warn
 from pyne.utils import QAWarning
 
 # Mesh specific imports
-from pyne.mesh import Mesh, StatMesh, MeshError, HAVE_PYMOAB
+try:
+    from itaps import iMesh
+    HAVE_PYTAPS = True
+except ImportError:
+    warn("the PyTAPS optional dependency could not be imported. "
+                  "Some aspects of the mcnp module may be incomplete.",
+                  QAWarning)
+    HAVE_PYTAPS = False
 
-if HAVE_PYMOAB:
-    from pyne.mesh import NativeMeshTag
-else:
-    warn("The PyMOAB optional dependency could not be imported. "
-         "Some aspects of the fluka module may be incomplete.",
-         QAWarning)
+from pyne.mesh import Mesh, StatMesh, MeshError, IMeshTag
 
 
 class Usrbin(object):
@@ -49,8 +51,8 @@ class Usrbin(object):
             FLUKA USRBIN file
         """
 
-        if not HAVE_PYMOAB:
-            raise RuntimeError("PyMOAB is not available, "
+        if not HAVE_PYTAPS:
+            raise RuntimeError("PyTAPS is not available, "
                                "unable to create Meshtal.")
 
         self.tally = {}
@@ -105,8 +107,8 @@ class UsrbinTally(Mesh):
             An open usrbin file
         """
 
-        if not HAVE_PYMOAB:
-            raise RuntimeError("PyMOAB is not available, "
+        if not HAVE_PYTAPS:
+            raise RuntimeError("PyTAPS is not available, "
                                "unable to create Meshtal.")
 
         part_data = []
@@ -123,8 +125,7 @@ class UsrbinTally(Mesh):
         self.particle = self.particle.split()[-1]
 
         if self.coord_sys != 'Cartesian':
-            raise ValueError(
-                "Only cartesian coordinate system currently supported")
+            raise ValueError("Only cartesian coordinate system currently supported")
 
         [x_info, y_info, z_info] = self._read_usrbin_head(fh)
 
@@ -183,7 +184,7 @@ class UsrbinTally(Mesh):
         """
         tokens = line.split()
         return float(tokens[3]), float(tokens[5]), int(tokens[7]), \
-            float(tokens[10])
+               float(tokens[10])
 
     def _generate_bounds(self, dim_info):
         """This takes in the dimension information (min, max, bins, and width)
@@ -201,13 +202,13 @@ class UsrbinTally(Mesh):
         the error_data.
         """
         super(UsrbinTally, self).__init__(structured_coords=[self.x_bounds,
-                                                             self.y_bounds, self.z_bounds],
+                                          self.y_bounds, self.z_bounds],
                                           structured=True,
                                           structured_ordering='zyx',
                                           mats=None)
-        self.part_data_tag = NativeMeshTag(size=1, dtype=float, mesh=self,
-                                           name="part_data_{0}".format(self.particle))
-        self.error_data_tag = NativeMeshTag(size=1, dtype=float, mesh=self,
-                                            name="error_data_{0}".format(self.particle))
+        self.part_data_tag = IMeshTag(size=1, dtype=float, mesh=self,
+                                  name="part_data_{0}".format(self.particle))
+        self.error_data_tag = IMeshTag(size=1, dtype=float, mesh=self,
+                                  name="error_data_{0}".format(self.particle))
         self.part_data_tag[:] = part_data
         self.error_data_tag[:] = error_data

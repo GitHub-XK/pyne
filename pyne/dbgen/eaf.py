@@ -48,18 +48,12 @@ def grab_eaf_data(build_dir=""):
     fpath = os.path.join(build_dir, eaf_gzip)
     if eaf_gzip not in os.listdir(build_dir):
         print("  grabbing {0} and placing it in {1}".format(eaf_gzip, fpath))
-        try:
-            urllib.urlretrieve(iaea_url, fpath)
-        except (OSError, IOError):
-            open(fpath, 'a').close()  # touch the file
+        urllib.urlretrieve(iaea_url, fpath)
 
         if os.path.getsize(fpath) < 3215713: 
             print("  could not get {0} from IAEA; trying S3 mirror".format(eaf_gzip))
             os.remove(fpath)
-            try:
-                urllib.urlretrieve(cf_base_url + eaf_gzip, fpath)
-            except (OSError, IOError):
-                open(fpath, 'a').close()  # touch the file
+            urllib.urlretrieve(s3_base_url + eaf_gzip, fpath)
             if os.path.getsize(fpath) < 3215713: 
                 print("  could not get {0} from S3 mirror".format(eaf_gzip))
                 return False
@@ -162,19 +156,19 @@ def make_eaf_table(nuc_data, build_path=""):
     eaf_array = parse_eaf_xs(build_path)
 
     # Open the HDF5 file
-    db = tb.open_file(nuc_data, 'a', filters=BASIC_FILTERS)
+    db = tb.openFile(nuc_data, 'a', filters=BASIC_FILTERS)
 
     # Ensure that the appropriate file structure is present
     if not hasattr(db.root, 'neutron'):
-        neutron_group = db.create_group('/', 'neutron', \
+        neutron_group = db.createGroup('/', 'neutron', \
                 'Neutron Interaction Data')
 
     # Create eaf_xs group
     if not hasattr(db.root.neutron, 'eaf_xs'):
-        eaf_group = db.create_group("/neutron", "eaf_xs", \
+        eaf_group = db.createGroup("/neutron", "eaf_xs", \
             "EAF 175-Group Neutron Activation Cross Section Data")
 
-    eaf_table = db.create_table("/neutron/eaf_xs", "eaf_xs", \
+    eaf_table = db.createTable("/neutron/eaf_xs", "eaf_xs", \
             np.empty(0, dtype=eaf_dtype), \
             "EAF Activation Cross Section Data [barns]", \
             expectedrows=len(eaf_array))
@@ -186,7 +180,7 @@ def make_eaf_table(nuc_data, build_path=""):
     eaf_table.flush()
 
     # Add group structure by calling placeholder function to get boundaries
-    db.create_array('/neutron/eaf_xs', 'E_g', _get_eaf_groups(), \
+    db.createArray('/neutron/eaf_xs', 'E_g', _get_eaf_groups(), \
             'Neutron energy group bounds [MeV]')
     
     # Close the HDF5 file
@@ -257,7 +251,7 @@ def make_eaf(args):
     nuc_data, build_dir, datapath = args.nuc_data, args.build_dir, args.datapath
 
     # Check if the table already exists
-    with tb.open_file(nuc_data, 'a', filters=BASIC_FILTERS) as f:
+    with tb.openFile(nuc_data, 'a', filters=BASIC_FILTERS) as f:
         if hasattr(f.root, 'neutron') and hasattr(f.root.neutron, 'eaf_xs'):
             print("skipping EAF activation data table creation; already exists.")
             return

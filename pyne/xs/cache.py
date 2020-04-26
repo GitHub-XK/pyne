@@ -12,7 +12,7 @@ import tables as tb
 
 from pyne import nucname
 from pyne.pyne_config import pyne_conf
-from pyne.xs.models import partial_energy_matrix, phi_g, same_arr_or_none
+from pyne.xs.models import partial_energy_matrix, phi_g
 from pyne.xs import data_source
 from pyne.utils import QAWarning
 
@@ -20,6 +20,12 @@ warn(__name__ + " is not yet QA compliant.", QAWarning)
 
 if sys.version_info[0] > 2:
   basestring = str
+
+def _same_arr_or_none(a, b): 
+    if a is None or b is None:
+        return a is b
+    else:
+        return (len(a) == len(b)) and (a == b).all()
 
 def _valid_group_struct(E_g):
     if E_g is None:
@@ -55,12 +61,12 @@ class XSCache(MutableMapping):
 
     """
 
-    def __init__(self, group_struct=None, scalars=None,
+    def __init__(self, group_struct=None, 
                  data_sources=(data_source.CinderDataSource,
                                data_source.OpenMCDataSource,
                                data_source.SimpleDataSource,
                                data_source.EAFDataSource,
-                               data_source.NullDataSource)):
+                               data_source.NullDataSource,)):
         self._cache = {}
         self.data_sources = []
         for ds in data_sources:
@@ -68,9 +74,8 @@ class XSCache(MutableMapping):
                 ds = ds(dst_group_struct=group_struct)
             if ds.exists:
                 self.data_sources.append(ds)
-        self._cache['E_g'] = _valid_group_struct(group_struct)
+        self._cache['E_g'] = _valid_group_struct(group_struct) 
         self._cache['phi_g'] = None
-        self._scalars = {} if scalars is None else scalars
 
     #
     # Mutable mapping pass-through interface
@@ -94,8 +99,6 @@ class XSCache(MutableMapping):
 
     def __getitem__(self, key):
         """Key lookup by via custom loading from the nuc_data database file."""
-        kw = dict(zip(['nuc', 'rx', 'temp'], key))
-        scalar = self._scalars.get(kw['nuc'], None)
         if (key not in self._cache) and not isinstance(key, basestring):
             E_g = self._cache['E_g']
             if E_g is None:
@@ -105,19 +108,15 @@ class XSCache(MutableMapping):
                         self._cache[key] = xsdata
                         break
             else:
+                kw = dict(zip(['nuc', 'rx', 'temp'], key))
                 kw['dst_phi_g'] = self._cache['phi_g']
                 for ds in self.data_sources:
                     xsdata = ds.discretize(**kw)
                     if xsdata is not None:
                         self._cache[key] = xsdata
-                        break        
-                else:
-                    raise KeyError
+                        break            
         # Return the value requested
-        if scalar is None:
-            return self._cache[key]
-        else:
-            return self._cache[key] * scalar
+        return self._cache[key]
 
 
     def __setitem__(self, key, value):
@@ -126,6 +125,8 @@ class XSCache(MutableMapping):
         if (key == 'E_g'):
             value = _valid_group_struct(value)
             cache_value = self._cache['E_g']
+            if _same_arr_or_none(value, cache_value):
+                return 
             self.clear()
             self._cache['phi_g'] = None
             for ds in self.data_sources:
@@ -133,7 +134,7 @@ class XSCache(MutableMapping):
         elif (key == 'phi_g'):
             value = value if value is None else np.asarray(value, dtype='f8')
             cache_value = self._cache['phi_g']
-            if same_arr_or_none(value, cache_value):
+            if _same_arr_or_none(value, cache_value):
                 return
             E_g = self._cache['E_g']
             if len(value) + 1 == len(E_g):

@@ -4,20 +4,15 @@
 # Do not modify!!!                             #
 #                                              #
 #                                              #
-# With some edits from BaM241                  #
 #                    Come on, guys. I mean it! #
 ################################################
 
 
+cimport stlcontainers
 from libcpp.map cimport map as cpp_map
 from libcpp.string cimport string as std_string
-from libcpp.vector cimport vector
 from pyne cimport cpp_tally
-from pyne cimport stlcontainers
 
-cdef vector[double] to_vector_double(value)
-cdef vector[int] to_vector_int(value)
-cdef vector[std_string] to_vector_string(value)
 
 
 cdef class Tally:
@@ -29,3 +24,6 @@ cdef class Tally:
     pass
 
 
+
+
+{'cpppxd_footer': '', 'pyx_header': '', 'pxd_header': '', 'pxd_footer': '', 'cpppxd_header': '', 'pyx_footer': ''}

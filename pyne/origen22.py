@@ -448,7 +448,7 @@ _tape5_decay_template = """\
   END
 """
 
-_nes_table = {}
+_nes_table = np.zeros((2, 2, 2), dtype=int)
 _nes_table[True, True, True]    = 1
 _nes_table[True, True, False]   = 2
 _nes_table[True, False, True]   = 3
@@ -1458,6 +1458,7 @@ def _compute_xslib(nuc, key, lib, xscache):
             continue
         data[key] = _xslib_computers[field](nuc, xscache)
 
+
 def xslibs(nucs=NUCS, xscache=None, nlb=(201, 202, 203), verbose=False):
     """Generates a TAPE9 dictionary of cross section & fission product yield data
     for a set of nuclides.
@@ -1490,6 +1491,7 @@ def xslibs(nucs=NUCS, xscache=None, nlb=(201, 202, 203), verbose=False):
     else:
         xscache['E_g'] = [old_group_struct[0], old_group_struct[-1]]
     nucs = sorted(nucs)
+
     # setup tape9
     t9 = {nlb[0]: {'_type': 'xsfpy', '_subtype': 'activation_products',
                    'title': 'PyNE Cross Section Data for Activation Products'},
@@ -1507,32 +1509,18 @@ def xslibs(nucs=NUCS, xscache=None, nlb=(201, 202, 203), verbose=False):
         t9[nlb[1]][field] = {}
     for field in FISSION_PRODUCT_FIELDS:
         t9[nlb[2]][field] = {}
+
     # fill with data
     for nuc in nucs:
         if verbose:
             print('computing {0}'.format(nucname.name(nuc)))
         key = nucname.zzaaam(nuc)
         if nuc in ACTIVATION_PRODUCT_NUCS:
-            try:
-                _compute_xslib(nuc, key, t9[nlb[0]], xscache)
-            except KeyError:
-                if verbose:
-                    print('Key Error with ', key, ' in a computing activation product cross sections')
-                continue
+            _compute_xslib(nuc, key, t9[nlb[0]], xscache)
         if nuc in ACTINIDE_AND_DAUGHTER_NUCS:
-            try:
-                _compute_xslib(nuc, key, t9[nlb[1]], xscache)
-            except KeyError:
-                if verbose:
-                    print('Key Error with ', key, ' in a computing actinide and daughter cross sections')
-                continue
+            _compute_xslib(nuc, key, t9[nlb[1]], xscache)
         if nuc in FISSION_PRODUCT_NUCS:
-            try:
-                _compute_xslib(nuc, key, t9[nlb[2]], xscache)
-            except KeyError:
-                if verbose:
-                    print('Key Error with ', key, ' in a computing fission product cross sections')
-                continue
+            _compute_xslib(nuc, key, t9[nlb[2]], xscache)
     xscache['E_g'] = old_group_struct
     xscache['phi_g'] = old_flux
     return t9
@@ -1587,6 +1575,7 @@ def make_tape9(nucs, xscache=None, nlb=(201, 202, 203)):
     # build decay decks
     decay_file = StringIO(decay_tape9.decay_tape9)
     decay = parse_tape9(decay_file)
+
     if xscache is None:
         xscache = cache.XSCache()
     nucs = {nucname.id(nuc) for nuc in nucs}

@@ -30,8 +30,6 @@ The following modules and sub-packages are discussed:
     r2s
     bins
     variancereduction
-    cram
-    transmuters
 
 **Physics Codes:**
 

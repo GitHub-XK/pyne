@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
+              'sphinx.ext.pngmath',
               'sphinx.ext.inheritance_diagram',
               'sphinx.ext.autosummary',  # autosummary doesn't work with numpydoc...
               'sphinx.ext.viewcode',
@@ -49,7 +50,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'PyNE'
-copyright = u'2011-2019, The PyNE Development Team'
+copyright = u'2011-2015, The PyNE Development Team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
